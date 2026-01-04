@@ -1,6 +1,6 @@
 # core/ai_decision.py
 import os
-import google.generativeai as genai
+from google import genai
 from supabase_client import supabase
 
 async def AI_Decision(submission_id: str):

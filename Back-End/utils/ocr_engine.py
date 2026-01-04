@@ -1,7 +1,7 @@
 # utils/ocr_engine.py
 import os
 import asyncio
-import google.generativeai as genai
+from google import genai
 import requests
 from utils.ocr_engine_failsafe import ocr_extractor
 from dotenv import load_dotenv
