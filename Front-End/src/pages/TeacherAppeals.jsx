@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken, getCurrentUser } from '../services/authService';
-import { getTeacherAppeals, resolveAppeal } from '../services/lectureService';
+import { getTeacherAppeals, resolveAppeal, getStudentAppealData } from '../services/lectureService';
 import Sidebar from '../components/Sidebar';
 import LoadingScreen from '../components/LoadingScreen';
 import './TeacherAppeals.css';
@@ -15,6 +15,9 @@ const TeacherAppeals = () => {
     const [error, setError] = useState(null);
     const [resolvingId, setResolvingId] = useState(null);
     const [comments, setComments] = useState({});
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+    const [analysisData, setAnalysisData] = useState(null);
+    const [loadingAnalysis, setLoadingAnalysis] = useState(false);
 
     useEffect(() => {
         const init = async () => {
@@ -80,6 +83,20 @@ const TeacherAppeals = () => {
             alert(err.response?.data?.detail || `Failed to ${actionText} appeal`);
         } finally {
             setResolvingId(null);
+        }
+    };
+
+    const handleViewAnalysis = async (lectureInstanceId, studentId) => {
+        setLoadingAnalysis(true);
+        try {
+            const data = await getStudentAppealData(lectureInstanceId, studentId);
+            setAnalysisData(data);
+            setShowAnalysisModal(true);
+        } catch (err) {
+            console.error("Failed to fetch analysis:", err);
+            alert(err.response?.data?.detail || "Failed to fetch student analysis data");
+        } finally {
+            setLoadingAnalysis(false);
         }
     };
 
@@ -158,6 +175,16 @@ const TeacherAppeals = () => {
                                             )}
                                         </div>
 
+                                        <div className="appeal-actions-secondary" style={{ marginTop: '1rem' }}>
+                                            <button
+                                                className="analysis-btn"
+                                                onClick={() => handleViewAnalysis(appeal.lecture_instance_id, appeal.student_id)}
+                                                disabled={loadingAnalysis}
+                                            >
+                                                📊 View Analysis
+                                            </button>
+                                        </div>
+
                                         {appeal.appeal_status === 'PENDING' && (
                                             <div className="appeal-resolution-footer" style={{ marginTop: '1rem' }}>
                                                 <textarea
@@ -200,6 +227,58 @@ const TeacherAppeals = () => {
                             </div>
                         )}
                     </div>
+
+                    {showAnalysisModal && analysisData && (
+                        <div className="modal-overlay" onClick={() => setShowAnalysisModal(false)}>
+                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <h3>Student Submission Analysis</h3>
+                                    <button className="modal-close" onClick={() => setShowAnalysisModal(false)}>✕</button>
+                                </div>
+                                <div className="modal-body">
+                                    <table className="analysis-table">
+                                        <tbody>
+                                            <tr>
+                                                <td className="label-cell">Plagiarism Similarity</td>
+                                                <td className="value-cell">
+                                                    <span className={`similarity-badge ${analysisData.max_similarity > 0.9 ? 'high' : analysisData.max_similarity > 0.4 ? 'medium' : 'low'}`}>
+                                                        {(analysisData.max_similarity * 100).toFixed(0)}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="label-cell">Copied From</td>
+                                                <td className="value-cell">
+                                                    {analysisData.copied_from_submission_id || 'N/A'}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="label-cell">AI Score</td>
+                                                <td className="value-cell">
+                                                    <span className={`ai-score-badge ${analysisData.ai_score > 75 ? 'excellent' : analysisData.ai_score >= 50 ? 'good' : 'poor'}`}>
+                                                        {analysisData.ai_score}/100
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td className="label-cell">AI Reasoning</td>
+                                                <td className="value-cell">{analysisData.ai_reason || 'N/A'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="label-cell">AI Confidence</td>
+                                                <td className="value-cell">
+                                                    <span className={`confidence-badge ${analysisData.ai_confidence?.toLowerCase() || 'low'}`}>
+                                                        {analysisData.ai_confidence || 'LOW'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </main>
             </div>
         </div>

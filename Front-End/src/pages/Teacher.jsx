@@ -236,7 +236,7 @@ const TeacherSchedule = ({ lectures, date, onToggleLock, onControlLecture, actio
             key={lecture.lecture_instance_id || lecture.id}
             lecture={lecture}
             onToggleLock={onToggleLock}
-            onControlLecture={handleControlLecture}
+            onControlLecture={onControlLecture}
             loading={actionLoading[lecture.lecture_instance_id || lecture.id]}
           />
         ))}

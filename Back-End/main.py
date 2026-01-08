@@ -833,3 +833,42 @@ async def resolve_appeal(
 
     return {"status": "success", "decision": decision}
 
+@app.get("/do")
+async def force_create_today_lectures():
+    supabase.rpc("exec_sql", {
+        "sql": "UPDATE timetable_lectures SET is_active = true WHERE is_active = true;"
+    }).execute()
+
+    return {
+        "status": "ok",
+        "message": "Trigger fired. Lecture instances created if applicable."
+    }
+
+@app.get("/teacher/appeals/studata")
+async def get_student_appeal_data(
+    lecture_instance_id: str,
+    student_id: str
+):
+    response = (
+        supabase
+        .table("submissions")
+        .select(
+            "max_similarity, "
+            "copied_from_submission_id, "
+            "ai_score, "
+            "ai_reason, "
+            "ai_confidence"
+        )
+        .eq("lecture_instance_id", lecture_instance_id)
+        .eq("user_id", student_id)
+        .limit(1)
+        .execute()
+    )
+
+    if not response.data:
+        raise HTTPException(
+            status_code=404,
+            detail="No submission found for this student and lecture"
+        )
+
+    return response.data[0]

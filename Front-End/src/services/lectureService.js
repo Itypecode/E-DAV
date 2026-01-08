@@ -148,4 +148,15 @@ export const resolveAppeal = async (appealId, teacherId, decision, comment = nul
   return response.data
 }
 
+export const getStudentAppealData = async (lectureInstanceId, studentId) => {
+  const response = await api.get('/teacher/appeals/studata', {
+    params: {
+      lecture_instance_id: lectureInstanceId,
+      student_id: studentId
+    }
+  })
+  return response.data
+}
+
+
 
