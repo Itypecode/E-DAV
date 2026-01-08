@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  baseURL: 'http://localhost:8000', // Configured for port 8000
   headers: {
     'Content-Type': 'application/json',
   },
@@ -39,7 +39,7 @@ api.interceptors.response.use(
       console.error('Network Error:', error.request)
       // Provide more helpful error message
       if (!error.request.response) {
-        throw new Error('Network Error: Unable to connect to server. Please make sure the backend is running on http://localhost:3000')
+        throw new Error('Network Error: Unable to connect to server. Please make sure the backend is running on http://localhost:8000')
       }
     } else {
       // Something else happened

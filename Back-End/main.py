@@ -17,9 +17,8 @@ SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 
 app = FastAPI()
 
-# Configure CORS
 origins = [
-    "http://localhost:5173",  # Vite dev server
+    "http://localhost:5173",  
     "http://localhost:3000",
 ]
 
@@ -33,7 +32,7 @@ app.add_middleware(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 supabase_admin = create_client(
     os.getenv("SUPABASE_URL"),
@@ -146,7 +145,6 @@ async def upload_submission(
     lecture_instance_id: str = Form(...),
     file: UploadFile = File(...)
 ):
-    # 1️⃣ Check lecture instance
     lecture = (
         supabase
         .table("lecture_instances")
@@ -162,7 +160,6 @@ async def upload_submission(
     if lecture.data["attendance_locked"] or lecture.data["status"] != "live":
         raise HTTPException(403, "Lecture is not accepting submissions")
 
-    # 2️⃣ Check attendance placeholder
     attendance = (
         supabase
         .table("attendance_registry")
@@ -179,7 +176,6 @@ async def upload_submission(
     if attendance.data["decision"] == "ABSENT":
         raise HTTPException(403, "You are marked absent for this lecture")
 
-    # 3️⃣ Prevent duplicate submission
     existing = (
         supabase
         .table("submissions")
@@ -192,7 +188,6 @@ async def upload_submission(
     if existing.data:
         raise HTTPException(409, "Submission already exists")
 
-    # 4️⃣ Upload file to storage
     file_ext = file.filename.split(".")[-1]
     file_name = f"{uuid.uuid4()}.{file_ext}"
     file_bytes = await file.read()
@@ -206,7 +201,6 @@ async def upload_submission(
 
     public_url = supabase.storage.from_("submission").get_public_url(file_name)
 
-    # 5️⃣ Create submission row
     record = supabase.table("submissions").insert({
         "user_id": user_id,
         "lecture_instance_id": lecture_instance_id,
@@ -217,16 +211,14 @@ async def upload_submission(
 
     submission_id = record.data[0]["id"]
 
-    # 6️⃣ Mark attendance as PRESENT (AI will refine)
     supabase.table("attendance_registry").update({
-        "decision": "PRESENT",
+        "decision": "PENDING",
         "updated_at": "now()"
     }).eq("user_id", user_id)\
      .eq("lecture_instance_id", lecture_instance_id)\
      .execute()
     submission_id = record.data[0]["id"]
 
-    # Trigger the processing pipeline
     await process_submission(submission_id)
 
     return {
@@ -238,7 +230,6 @@ async def upload_submission(
 @app.get("/test-supabase")
 def test_supabase():
     try:
-        # Try listing tables or any simple query
         result = supabase.table("profiles").select("*").limit(1).execute()
         return {
             "connected": True,
@@ -284,14 +275,13 @@ async def register(
 async def login(
     username: str = Form(...),
     password: str = Form(...),
-    user_type: str = Form(...)  # student | teacher
+    user_type: str = Form(...) 
 ):
     if user_type not in ["student", "teacher"]:
         raise HTTPException(status_code=400, detail="Invalid user type")
 
     email = f"{username}@internal.app"
 
-    # 1. Authenticate user
     try:
         auth = supabase.auth.sign_in_with_password({
             "email": email,
@@ -303,7 +293,6 @@ async def login(
     user_id = auth.user.id
     access_token = auth.session.access_token
 
-    # 2. Fetch role from profiles
     profile = (
         supabase
         .table("profiles")
@@ -340,6 +329,7 @@ def me(user=Depends(verify_token)):
     return {
         "user_id": user["sub"],
         "username": profile.data["username"],
+        "dept": profile.data["Dept"],
         "name": profile.data["Name"],
         "role": profile.data["role"]
     }   
@@ -411,13 +401,11 @@ async def attendance_student_overview(
 
         subject_label = f'{row["subject_code"]} - {row["subject_name"]}'
 
-        # calendar cell
         calendar_map[date_str]["hours"][slot] = {
             "subject": subject_label,
             "status": row["decision"]
         }
 
-        # summary
         s = summary_map[subject_label]
         s["total"] += 1
 
@@ -450,7 +438,6 @@ async def attendance_student_overview(
 @app.get("/student/submissions")
 def get_student_submissions(current_user=Depends(verify_token)):
 
-    # 1. Get submissions
     submissions = (
         supabase
         .table("submissions")
@@ -463,7 +450,6 @@ def get_student_submissions(current_user=Depends(verify_token)):
     if not submissions:
         return []
 
-    # 2. lecture_instances
     lecture_instance_ids = list({s["lecture_instance_id"] for s in submissions})
 
     lecture_instances = (
@@ -476,7 +462,6 @@ def get_student_submissions(current_user=Depends(verify_token)):
 
     li_map = {l["id"]: l["timetable_lecture_id"] for l in lecture_instances}
 
-    # 3. timetable_lectures
     timetable_ids = list(set(li_map.values()))
 
     timetable_lectures = (
@@ -489,7 +474,6 @@ def get_student_submissions(current_user=Depends(verify_token)):
 
     tl_map = {t["id"]: t["class_id"] for t in timetable_lectures}
 
-    # 4. classes (subjects)
     class_ids = list(set(tl_map.values()))
 
     classes = (
@@ -502,7 +486,6 @@ def get_student_submissions(current_user=Depends(verify_token)):
 
     class_map = {c["id"]: c for c in classes}
 
-    # 5. Final response
     response = []
 
     for s in submissions:
@@ -522,4 +505,331 @@ def get_student_submissions(current_user=Depends(verify_token)):
         })
 
     return response
+
+@app.post("/lectures/resolve")
+async def resolve_lecture_instance_endpoint(
+    user_id: str,
+    date: str,
+    hour_slot: int,
+    subject_code: str
+):
+
+    if hour_slot < 1 or hour_slot > len(HOUR_SLOTS):
+        raise HTTPException(400, "Invalid hour slot")
+
+    slot_start, slot_end = HOUR_SLOTS[hour_slot - 1]
+
+    result = supabase.rpc(
+    "resolve_lecture_instance",
+    {
+        "p_user_id": user_id,
+        "p_date": date,
+        "p_subject_code": subject_code,
+        "p_slot_start": slot_start.strftime("%H:%M:%S"),
+        "p_slot_end": slot_end.strftime("%H:%M:%S"),
+    }
+).execute()
+
+    if not result.data:
+        raise HTTPException(404, "No matching lecture found")
+
+    if len(result.data) > 1:
+        raise HTTPException(
+            409,
+            "Multiple lectures found for this slot. Contact admin."
+        )
+
+    return {
+        "lecture_instance_id": result.data[0]["id"]
+    }
+
+@app.post("/attendance/appeal")
+async def create_attendance_appeal(
+    user_id: str,
+    lecture_instance_id: str,
+    reason: str
+):
+    
+    attendance = (
+        supabase
+        .table("attendance_registry")
+        .select("decision")
+        .eq("user_id", user_id)
+        .eq("lecture_instance_id", lecture_instance_id)
+        .single()
+        .execute()
+    )
+
+    if not attendance.data:
+        raise HTTPException(403, "Not enrolled for this lecture")
+
+    if attendance.data["decision"] != "ABSENT":
+        raise HTTPException(
+            400,
+            "Appeal allowed only for ABSENT lectures"
+        )
+
+    
+    submission = (
+        supabase
+        .table("submissions")
+        .select("image_url")
+        .eq("user_id", user_id)
+        .eq("lecture_instance_id", lecture_instance_id)
+        .order("uploaded_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    evidence_url = None
+    if submission.data:
+        evidence_url = submission.data[0]["image_url"]
+
+    
+    try:
+        supabase.table("attendance_appeals").insert({
+            "user_id": user_id,
+            "lecture_instance_id": lecture_instance_id,
+            "reason": reason,
+            "evidence_url": evidence_url
+        }).execute()
+    except Exception as e:
+        # Check for duplicate key violation (Postgres code 23505)
+        if "23505" in str(e):
+            raise HTTPException(
+                status_code=409,
+                detail="You have already appealed for this lecture."
+            )
+        raise e
+
+    return {
+        "status": "success",
+        "message": "Appeal submitted successfully",
+        "evidence_used": bool(evidence_url)
+    }
+    
+@app.get("/teacher/lectures/today")
+async def teacher_lectures_today(teacher_id: str):
+    result = supabase.rpc(
+        "get_today_lectures_for_teacher",
+        {"p_teacher_id": teacher_id}
+    ).execute()
+
+    return {
+        "date": date.today().isoformat(),
+        "lectures": result.data
+    }
+
+@app.post("/teacher/lectures/{lecture_instance_id}")
+async def control_lecture(
+    lecture_instance_id: str,
+    teacher_id: str,
+    action: str,
+    lock_attendance: bool | None = None,
+    concept: str | None = None,
+):
+    action = action.upper()
+
+    if action not in ["START", "CLOSE"]:
+        raise HTTPException(400, "Invalid action")
+
+    lecture = (
+        supabase
+        .table("lecture_instances")
+        .select(
+            "status, timetable_lectures!inner(teacher_id)"
+        )
+        .eq("id", lecture_instance_id)
+        .single()
+        .execute()
+    )
+
+    if not lecture.data:
+        raise HTTPException(404, "Lecture not found")
+
+    if lecture.data["timetable_lectures"]["teacher_id"] != teacher_id:
+        raise HTTPException(403, "Not authorized")
+
+    current_status = lecture.data["status"]
+
+    if action == "START" and current_status != "scheduled":
+        raise HTTPException(400, "Lecture cannot be started")
+
+    if action == "CLOSE" and current_status not in ["live", "scheduled"]:
+        raise HTTPException(400, "Lecture cannot be closed")
+
+    update_data = {}
+
+    if action == "START":
+        update_data["status"] = "live"
+        update_data["concept"] = concept or ""
+
+    if action == "CLOSE":
+        update_data["status"] = "closed"
+        update_data["attendance_locked"] = True
+
+    supabase.table("lecture_instances") \
+        .update(update_data) \
+        .eq("id", lecture_instance_id) \
+        .execute()
+
+    return {
+        "status": "success",
+        "lecture_instance_id": lecture_instance_id,
+        "new_status": update_data["status"],
+        "concept": concept or ""
+    }
+
+@app.get("/attendance/teacher/overview")
+async def teacher_attendance_overview(
+    teacher_id: str,
+    start_date: str,
+    end_date: str
+):
+    result = supabase.rpc(
+        "get_teacher_attendance_overview",
+        {
+            "p_teacher_id": teacher_id,
+            "p_start_date": start_date,
+            "p_end_date": end_date
+        }
+    ).execute()
+
+    lectures = []
+
+    for row in result.data:
+        start_time = datetime.strptime(
+            row["start_time"], "%H:%M:%S"
+        ).time()
+
+        lectures.append({
+            "lecture_instance_id": row["lecture_instance_id"],
+            "date": row["lecture_date"],
+            "hour_slot": get_hour_slot(start_time),
+            "subject": f'{row["class_code"]} - {row["class_name"]}',
+            "present": row["present_count"],
+            "absent": row["absent_count"],
+            "od": row["od_count"],
+            "pending": row["pending_count"],
+            "total": row["total_students"]
+        })
+
+    return {"lectures": lectures}
+
+@app.get("/teacher/classes")
+async def teacher_classes(teacher_id: str):
+    result = (
+        supabase
+        .rpc(
+            "get_teacher_classes_with_students",
+            {"p_teacher_id": teacher_id}
+        )
+        .execute()
+    )
+
+    classes_map = {}
+
+    for row in result.data:
+        class_id = row["class_id"]
+
+        if class_id not in classes_map:
+            classes_map[class_id] = {
+                "class_id": class_id,
+                "class_code": row["class_code"],
+                "class_name": row["class_name"],
+                "semester": row["semester"],
+                "department": row["department"],
+                "students": []
+            }
+
+        classes_map[class_id]["students"].append({
+            "student_id": row["student_id"],
+            "username": row["username"],
+            "name": row["name"],
+            "dept": row["dept"]
+        })
+
+    return {
+        "classes": list(classes_map.values())
+    }
+
+@app.get("/teacher/lectures/{lecture_instance_id}/attendance")
+async def lecture_attendance_detail(lecture_instance_id: str):
+    result = supabase.rpc(
+        "get_present_students_for_lecture",
+        {"p_lecture_instance_id": lecture_instance_id}
+    ).execute()
+
+    return {
+        "lecture_instance_id": lecture_instance_id,
+        "students": result.data
+    }
+
+@app.get("/teacher/appeals")
+async def get_teacher_appeals(
+    teacher_id: str,
+    status: str = "PENDING"
+):
+    status = status.upper()
+
+    if status not in ["PENDING", "APPROVED", "REJECTED"]:
+        raise HTTPException(400, "Invalid status")
+
+    result = supabase.rpc(
+        "get_teacher_appeals",
+        {
+            "p_teacher_id": teacher_id,
+            "p_status": status
+        }
+    ).execute()
+
+    return {
+        "appeals": result.data
+    }
+
+@app.post("/teacher/appeals/{appeal_id}/resolve")
+async def resolve_appeal(
+    appeal_id: str,
+    teacher_id: str,
+    decision: str,
+    teacher_comment: str | None = None
+):
+    decision = decision.upper()
+    if decision not in ["APPROVED", "REJECTED"]:
+        raise HTTPException(400, "Invalid decision")
+
+    appeal = (
+        supabase
+        .table("attendance_appeals")
+        .select(
+            "id, user_id, lecture_instance_id, status, lecture_instances!inner(timetable_lectures!inner(teacher_id))"
+        )
+        .eq("id", appeal_id)
+        .single()
+        .execute()
+    )
+
+    if not appeal.data:
+        raise HTTPException(404, "Appeal not found")
+
+    if appeal.data["lecture_instances"]["timetable_lectures"]["teacher_id"] != teacher_id:
+        raise HTTPException(403, "Not authorized")
+
+    if appeal.data["status"] != "PENDING":
+        raise HTTPException(400, "Appeal already resolved")
+
+    supabase.table("attendance_appeals").update({
+        "status": decision,
+        "teacher_comment": teacher_comment,
+        "resolved_at": "now()"
+    }).eq("id", appeal_id).execute()
+
+    if decision == "APPROVED":
+        supabase.table("attendance_registry").update({
+            "decision": "PRESENT"
+        }).eq("user_id", appeal.data["user_id"]) \
+         .eq("lecture_instance_id", appeal.data["lecture_instance_id"]) \
+         .execute()
+
+    return {"status": "success", "decision": decision}
 

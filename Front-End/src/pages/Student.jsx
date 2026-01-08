@@ -50,6 +50,7 @@ const Student = () => {
               ? `${lecture.start_time} - ${lecture.end_time}`
               : 'Time TBD',
             attendance_status: lecture.attendance_status || 'PENDING',
+            status: lecture.status || 'CLOSED',
             finalized: lecture.attendance_locked || false,
             submission_id: null,
             submission: null
@@ -99,6 +100,7 @@ const Student = () => {
             ? `${lecture.start_time} - ${lecture.end_time}`
             : 'Time TBD',
           attendance_status: lecture.attendance_status || 'PENDING',
+          status: lecture.status || 'CLOSED',
           finalized: lecture.attendance_locked || false,
           submission_id: null,
           submission: null
@@ -129,13 +131,13 @@ const Student = () => {
 
   return (
     <div className="student-dashboard">
-      <Sidebar />
+      <Sidebar role="student" />
       <div className="main-content-wrapper">
         <header className="dashboard-header">
           <div className="header-content">
             <h1>Student Dashboard</h1>
             <div className="header-right">
-              <span className="username">Welcome, {user?.name || user?.username}</span>
+              <span className="username">Welcome, {user?.name} ({user?.dept})</span>
               <button onClick={handleLogout} className="logout-btn">
                 Logout
               </button>
@@ -171,15 +173,15 @@ const StudentInfo = ({ user }) => {
       <div className="info-grid">
         <div className="info-item">
           <label>Name</label>
-          <span>{user?.name || user?.username || 'N/A'}</span>
+          <span>{user?.name || 'N/A'}</span>
         </div>
         <div className="info-item">
           <label>Student ID</label>
           <span>{user?.user_id || 'N/A'}</span>
         </div>
         <div className="info-item">
-          <label>Username</label>
-          <span>{user?.username || 'N/A'}</span>
+          <label>Department</label>
+          <span>{user?.dept || 'N/A'}</span>
         </div>
       </div>
     </div>
@@ -242,21 +244,27 @@ const TodaysLectures = ({ lectures, userId, onUpload, uploading, error }) => {
 
 const LectureCard = ({ lecture, userId, onUpload, uploading }) => {
   const getStatusBadge = (status) => {
-    const statusMap = {
-      PRESENT: { class: 'status-present', text: 'Present', icon: '✅' },
-      ABSENT: { class: 'status-absent', text: 'Absent', icon: '❌' },
-      PENDING: { class: 'status-pending', text: 'Pending', icon: '⏳' },
+    let statusClass = 'status-absent';
+    let statusText = 'Closed';
+    const statusUpper = status ? status.toUpperCase() : '';
+
+    if (statusUpper === 'LIVE') {
+      statusClass = 'status-present';
+      statusText = 'Live';
+    } else if (statusUpper === 'SCHEDULED') {
+      statusClass = 'status-pending';
+      statusText = 'Scheduled';
     }
-    const statusInfo = statusMap[status] || { class: 'status-pending', text: 'Pending', icon: '⏳' }
+
     return (
-      <div className={`status-pill ${statusInfo.class}`}>
+      <div className={`status-pill ${statusClass}`}>
         <span className="status-dot"></span>
-        <span className="status-text">{statusInfo.text}</span>
+        <span className="status-text">{statusText}</span>
       </div>
     )
   }
 
-  const canUpload = !lecture.finalized && !lecture.submission_id && !uploading
+  const canUpload = !lecture.finalized && !lecture.submission_id && !uploading && lecture.status?.toUpperCase() === 'LIVE'
   const hasSubmission = lecture.submission_id
 
   return (
@@ -266,7 +274,7 @@ const LectureCard = ({ lecture, userId, onUpload, uploading }) => {
           <h3>{lecture.subject_name}</h3>
           <span className="class-code-tag">{lecture.class_name}</span>
         </div>
-        {getStatusBadge(lecture.attendance_status)}
+        {getStatusBadge(lecture.status)}
       </div>
 
       <div className="card-middle">

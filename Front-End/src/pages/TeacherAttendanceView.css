@@ -1,0 +1,125 @@
+.teacher-overview-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.teacher-overview-table th {
+    background: #f8fafc;
+    color: #4a5568;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.teacher-overview-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #edf2f7;
+    color: #2d3748;
+    font-size: 0.9rem;
+}
+
+.subject-cell {
+    font-weight: 500;
+    color: #2a5298;
+}
+
+.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+    background-color: #f0f4ff !important;
+}
+
+
+.count-cell {
+    font-weight: 600;
+    text-align: center;
+}
+
+.count-cell.present {
+    color: #38a169;
+}
+
+.count-cell.absent {
+    color: #e53e3e;
+}
+
+.count-cell.od {
+    color: #3182ce;
+}
+
+.count-cell.pending {
+    color: #ed8936;
+}
+
+.count-cell.total {
+    color: #4a5568;
+}
+
+.perc-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 120px;
+}
+
+.perc-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: #edf2f7;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.perc-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.attendance-filter-controls {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.date-input {
+    padding: 0.5rem;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.date-input:focus {
+    border-color: #2a5298;
+}
+
+@media (max-width: 768px) {
+    .attendance-filter-controls {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}

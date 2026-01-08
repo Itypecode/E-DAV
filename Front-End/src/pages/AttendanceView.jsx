@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken, getCurrentUser } from '../services/authService';
-import { getAttendanceOverview } from '../services/lectureService';
+import { getAttendanceOverview, resolveLectureInstance } from '../services/lectureService';
 import Sidebar from '../components/Sidebar';
 import LoadingScreen from '../components/LoadingScreen';
 import './AttendanceView.css';
@@ -55,6 +55,34 @@ const AttendanceView = () => {
 
         init();
     }, [navigate, dateRange]);
+
+
+    const handleCellClick = async (date, slot, cellData) => {
+        if (!cellData || !cellData.subject) return;
+
+        // Extract subject code from "CS101 - Intro to CS" format
+        const subjectCode = cellData.subject.split(' - ')[0];
+
+        try {
+            setLoading(true);
+            const result = await resolveLectureInstance(user.user_id, date, parseInt(slot), subjectCode);
+
+            navigate('/appeal', {
+                state: {
+                    lectureInstanceId: result.lecture_instance_id,
+                    userId: user.user_id,
+                    subject: cellData.subject,
+                    date: date,
+                    slot: slot
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            alert('Could not resolve lecture instance details. ' + (err.response?.data?.detail || err.message));
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const getStatusClass = (status) => {
         if (!status) return 'status-none';
@@ -149,7 +177,12 @@ const AttendanceView = () => {
                                                 {[1, 2, 3, 4, 5].map(hour => {
                                                     const cell = row.hours[hour];
                                                     return (
-                                                        <td key={hour} className={`hour-cell ${getStatusClass(cell?.status)}`}>
+                                                        <td
+                                                            key={hour}
+                                                            className={`hour-cell ${getStatusClass(cell?.status)} ${cell ? 'clickable-cell' : ''}`}
+                                                            onClick={() => cell && handleCellClick(row.date, hour, cell)}
+                                                            title={cell ? "Click to appeal attendance" : ""}
+                                                        >
                                                             {cell && (
                                                                 <div className="cell-content">
                                                                     <span className="cell-status">[{cell.status?.[0]}]</span>

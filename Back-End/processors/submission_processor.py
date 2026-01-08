@@ -3,7 +3,7 @@ from utils.aicheck_engine import detect_ai_content
 from utils.ocr_engine import extract_text_from_file
 from utils.embed_engine import embed_text
 from supabase_client import supabase
-#from core.ai_decision import AI_Decision
+from core.ai_decision import ai_decision_and_update_attendance
 
 async def process_submission(submission_id: str):
     print(f"[PROCESSOR] Starting OCR for submission: {submission_id}")
@@ -84,5 +84,5 @@ async def process_submission(submission_id: str):
     print("[PROCESSOR] Similarity search completed.")
 
     # Trigger AI Decision
-    #await AI_Decision(submission_id)
+    await AI_Decision(submission_id,supabase)
 

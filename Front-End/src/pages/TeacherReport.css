@@ -1,0 +1,194 @@
+.report-view {
+    padding: 2rem;
+}
+
+.report-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.report-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.header-left-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.lecture-meta-header {
+    display: flex;
+    gap: 1rem;
+}
+
+.meta-tag {
+    background: #f0f4ff;
+    color: #2a5298;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.report-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.filter-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.filter-item label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.filter-item select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    background: white;
+    cursor: pointer;
+}
+
+.report-stats {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: #718096;
+    font-weight: 500;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.report-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.report-table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #edf2f7;
+    font-size: 0.9rem;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.student-name {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Color Formatting for Decision */
+.status-cell {
+    font-weight: 700;
+    font-size: 0.8rem;
+    border-radius: 6px;
+}
+
+.val-present {
+    color: #059669;
+    background-color: #ecfdf5;
+    padding: 4px 8px;
+    display: inline-block;
+}
+
+.val-absent {
+    color: #dc2626;
+    background-color: #fef2f2;
+    padding: 4px 8px;
+    display: inline-block;
+}
+
+.val-od {
+    color: #7c3aed;
+    background-color: #f5f3ff;
+    padding: 4px 8px;
+    display: inline-block;
+}
+
+.val-pending {
+    color: #d97706;
+    background-color: #fffbeb;
+    padding: 4px 8px;
+    display: inline-block;
+}
+
+/* Color Formatting for Understanding */
+.understanding-cell {
+    font-weight: 600;
+}
+
+.val-high {
+    color: #059669;
+}
+
+.val-medium {
+    color: #d97706;
+}
+
+.val-poor {
+    color: #dc2626;
+}
+
+.reason-cell {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #64748b;
+    font-style: italic;
+}
+
+.view-link {
+    color: #2a5298;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.view-link:hover {
+    text-decoration: underline;
+}
+
+.empty-row {
+    text-align: center;
+    padding: 3rem !important;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+@media (max-width: 1024px) {
+    .report-filters {
+        gap: 1rem;
+    }
+
+    .report-stats {
+        width: 100%;
+        margin-top: 1rem;
+    }
+}

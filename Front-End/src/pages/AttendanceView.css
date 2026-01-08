@@ -85,6 +85,21 @@
     text-align: center;
 }
 
+.clickable-cell {
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.clickable-cell:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    filter: brightness(0.95);
+}
+
+.clickable-cell:active {
+    transform: scale(0.98);
+}
+
 .cell-content {
     display: flex;
     flex-direction: column;

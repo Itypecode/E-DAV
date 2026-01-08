@@ -1,0 +1,253 @@
+.appeals-view {
+    padding: 2rem;
+}
+
+.appeals-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.appeal-filter-tabs {
+    display: flex;
+    background: #edf2f7;
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+}
+
+.filter-tab {
+    padding: 0.6rem 1.5rem;
+    border: none;
+    background: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #4a5568;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-tab.active {
+    background: white;
+    color: #2a5298;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.appeals-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.appeal-card-v2 {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #e2e8f0;
+}
+
+.appeal-card-v2:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.appeal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.student-info-mini {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    background: #2a5298;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.student-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.student-details .name {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 1.05rem;
+}
+
+.student-details .id {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.status-badge-compact {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.status-badge-compact.pending {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.status-badge-compact.approved {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.status-badge-compact.rejected {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.lecture-context {
+    font-size: 0.9rem;
+    color: #475569;
+    line-height: 1.6;
+    background: #f8fafc;
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.decision-absent {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.reason-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.reason-box strong {
+    font-size: 0.85rem;
+    color: #1e293b;
+}
+
+.reason-box p {
+    font-size: 0.95rem;
+    color: #475569;
+    margin: 0;
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.evidence-link a {
+    font-size: 0.85rem;
+    color: #2a5298;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.evidence-link a:hover {
+    text-decoration: underline;
+}
+
+.appeal-card-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: auto;
+}
+
+.teacher-comment-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-family: inherit;
+    font-size: 0.9rem;
+    background: #fdfdfd;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.teacher-comment-input:focus {
+    outline: none;
+    border-color: #2a5298;
+}
+
+.resolution-comment {
+    border-left: 3px solid #cbd5e0;
+    padding-left: 10px;
+}
+
+
+.approve-btn,
+.reject-btn {
+    flex: 1;
+    padding: 0.6rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.approve-btn {
+    background: #059669;
+    color: white;
+    border: none;
+}
+
+.approve-btn:hover {
+    background: #047857;
+}
+
+.reject-btn {
+    background: white;
+    color: #dc2626;
+    border: 1px solid #dc2626;
+}
+
+.reject-btn:hover {
+    background: #fef2f2;
+}
+
+.empty-state-card {
+    text-align: center;
+    padding: 4rem;
+    background: white;
+    border-radius: 20px;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state-card h3 {
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-card p {
+    color: #64748b;
+}
+
+@media (max-width: 640px) {
+    .appeals-list {
+        grid-template-columns: 1fr;
+    }
+}

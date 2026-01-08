@@ -397,7 +397,10 @@
 
 .status-notice.warning {
   background: #fff5f5;
-  color: #c53030;
+  color: #9b2c2c;
+  /* Darker red for better visibility */
+  border: 1px solid #fc8181;
+  font-weight: 500;
 }
 
 .upload-loader {
@@ -494,4 +497,87 @@
   .header-content h1 {
     font-size: 1.4rem;
   }
+
+  .header-content h1 {
+    font-size: 1.4rem;
+  }
+}
+
+/* Explicit error message style for Student Dashboard */
+.error-message {
+  background: #fff5f5;
+  color: #c53030;
+  border: 1px solid #fc8181;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Added styles for Appeal Page compatibility */
+.card {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.login-btn {
+  padding: 12px 24px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.login-btn:hover {
+  background: #5a67d8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(102, 126, 234, 0.25);
+}
+
+.login-btn.secondary {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.login-btn.secondary:hover {
+  background: #cbd5e0;
+  color: #2d3748;
+}
+
+.form-group label {
+  color: #4a5568;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  min-height: 120px;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
 }
