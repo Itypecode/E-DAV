@@ -1,8 +1,10 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends, Header
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Depends, Header, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from supabase_client import supabase
 from supabase import create_client
 from zoneinfo import ZoneInfo
+from pydantic import BaseModel
+from typing import List
 from processors.submission_processor import process_submission
 import uuid
 from datetime import datetime, date, time, timedelta
@@ -10,6 +12,7 @@ from collections import defaultdict
 import os
 import jwt
 from dotenv import load_dotenv
+from chatbot import chat    
 
 load_dotenv()
 
@@ -872,3 +875,85 @@ async def get_student_appeal_data(
         )
 
     return response.data[0]
+
+class MarkAbsentRequest(BaseModel):
+    lecture_instance_id: str
+    students_username: List[str]
+
+@app.post("/teacher/attendance/mark-absent")
+async def mark_students_absent(payload: MarkAbsentRequest):
+    if not payload.students_username:
+        raise HTTPException(
+            status_code=400,
+            detail="students_username cannot be empty"
+        )
+
+    try:
+        profiles_res = (
+            supabase
+            .table("profiles")
+            .select("id, username")
+            .in_("username", payload.students_username)
+            .execute()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if not profiles_res.data:
+        raise HTTPException(
+            status_code=404,
+            detail="No matching students found"
+        )
+
+    username_to_id = {p["username"]: p["id"] for p in profiles_res.data}
+    user_ids = list(username_to_id.values())
+
+    try:
+        attendance_res = (
+            supabase
+            .table("attendance_registry")
+            .update({
+                "decision": "ABSENT",
+                "updated_at": datetime.utcnow().isoformat()
+            })
+            .eq("lecture_instance_id", payload.lecture_instance_id)
+            .in_("user_id", user_ids)
+            .execute()
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    not_found_usernames = list(
+        set(payload.students_username) - set(username_to_id.keys())
+    )
+
+    return {
+        "success": True,
+        "lecture_instance_id": payload.lecture_instance_id,
+        "marked_absent": list(username_to_id.keys()),
+        "usernames_not_found": not_found_usernames,
+        "updated_rows": len(attendance_res.data)
+    }
+
+@app.post("/teacher/chat")
+async def teacher_chat(
+    teacher_id: str,
+    message: str
+):
+    ctx = supabase.rpc(
+        "teacher_get_context",
+        {"p_teacher_id": teacher_id}
+    ).execute()
+
+    if not ctx.data:
+        raise HTTPException(500, "Context fetch failed")
+
+    teacher_context = dict(ctx.data)
+
+    response = await chat(
+        teacher_context,
+        message
+    )
+
+    return {"reply": response}
+

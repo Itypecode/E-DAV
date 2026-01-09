@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { getCurrentUser, removeToken, getToken } from '../services/authService'
-import { getTeacherSchedule, getTeacherClasses, toggleLectureLock, controlLecture } from '../services/lectureService'
+import { getTeacherSchedule, getTeacherClasses, toggleLectureLock, controlLecture, markStudentsAbsent } from '../services/lectureService'
 import Sidebar from '../components/Sidebar'
 import LoadingScreen from '../components/LoadingScreen'
+import Chatbot from '../components/Chatbot'
 import './Teacher.css'
 
 const Teacher = () => {
@@ -161,6 +162,9 @@ const Teacher = () => {
           </div>
         </main>
       </div>
+
+      {/* AI Chatbot Assistant */}
+      <Chatbot teacherId={user?.user_id} />
     </div>
   )
 }
@@ -249,6 +253,9 @@ const TeacherLectureCard = ({ lecture, onToggleLock, onControlLecture, loading }
   const status = lecture.status ? lecture.status.toUpperCase() : '';
   const [showConceptDialog, setShowConceptDialog] = useState(false);
   const [concept, setConcept] = useState('');
+  const [showAbsentModal, setShowAbsentModal] = useState(false);
+  const [absentUsernames, setAbsentUsernames] = useState('');
+  const [markingAbsent, setMarkingAbsent] = useState(false);
 
   const handleStartWithConcept = async () => {
     if (!concept.trim()) {
@@ -258,6 +265,30 @@ const TeacherLectureCard = ({ lecture, onToggleLock, onControlLecture, loading }
     const success = await onControlLecture(lecture.lecture_instance_id || lecture.id, 'START', concept);
     if (success) {
       setShowConceptDialog(false);
+    }
+  }
+
+  const handleMarkAbsent = async () => {
+    const usernames = absentUsernames
+      .split(/[\n,]/)
+      .map(u => u.trim())
+      .filter(u => u.length > 0);
+
+    if (usernames.length === 0) {
+      alert("Please enter at least one username");
+      return;
+    }
+
+    setMarkingAbsent(true);
+    try {
+      const result = await markStudentsAbsent(lecture.lecture_instance_id || lecture.id, usernames);
+      alert(`Success! Marked ${result.marked_absent.length} student(s) as absent.${result.usernames_not_found.length > 0 ? `\n\nNot found: ${result.usernames_not_found.join(', ')}` : ''}`);
+      setAbsentUsernames('');
+      setShowAbsentModal(false);
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.detail || err.message || 'Failed to mark absent'}`);
+    } finally {
+      setMarkingAbsent(false);
     }
   }
 
@@ -334,8 +365,37 @@ const TeacherLectureCard = ({ lecture, onToggleLock, onControlLecture, loading }
               </button>
             </div>
           </div>
+        ) : showAbsentModal ? (
+          <div className="concept-dialog" style={{ width: '100%', marginTop: '1rem' }}>
+            <label style={{ fontSize: '0.9rem', color: '#4a5568', marginBottom: '0.5rem', display: 'block' }}>
+              Enter usernames (one per line or comma-separated):
+            </label>
+            <textarea
+              className="concept-input"
+              placeholder="student1, student2&#10;student3"
+              value={absentUsernames}
+              onChange={(e) => setAbsentUsernames(e.target.value)}
+              rows={4}
+            />
+            <div className="button-group" style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
+              <button
+                className="action-btn lock-btn"
+                onClick={handleMarkAbsent}
+                disabled={markingAbsent}
+              >
+                {markingAbsent ? 'Marking...' : 'Mark Absent'}
+              </button>
+              <button
+                className="action-btn unlock-btn"
+                onClick={() => { setShowAbsentModal(false); setAbsentUsernames(''); }}
+                disabled={markingAbsent}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         ) : (
-          <div className="action-buttons" style={{ display: 'flex', gap: '10px', marginTop: '1.5rem', width: '100%' }}>
+          <div className="action-buttons" style={{ display: 'flex', gap: '10px', marginTop: '1.5rem', width: '100%', flexWrap: 'wrap' }}>
             {status === 'SCHEDULED' && (
               <>
                 <button
@@ -355,13 +415,23 @@ const TeacherLectureCard = ({ lecture, onToggleLock, onControlLecture, loading }
               </>
             )}
             {status === 'LIVE' && (
-              <button
-                className="action-btn lock-btn"
-                onClick={() => onControlLecture(lecture.lecture_instance_id || lecture.id, 'CLOSE')}
-                disabled={loading}
-              >
-                {loading ? 'Closing...' : 'Close Lecture'}
-              </button>
+              <>
+                <button
+                  className="action-btn unlock-btn"
+                  style={{ fontSize: '0.85rem', padding: '0.6rem 1rem' }}
+                  onClick={() => setShowAbsentModal(true)}
+                  disabled={loading}
+                >
+                  Mark Absent
+                </button>
+                <button
+                  className="action-btn lock-btn"
+                  onClick={() => onControlLecture(lecture.lecture_instance_id || lecture.id, 'CLOSE')}
+                  disabled={loading}
+                >
+                  {loading ? 'Closing...' : 'Close Lecture'}
+                </button>
+              </>
             )}
             {status === 'CLOSED' && (
               <span className="session-tag" style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', background: '#f8f9fa', padding: '4px 12px', borderRadius: '4px' }}>Session concluded</span>

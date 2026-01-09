@@ -158,5 +158,20 @@ export const getStudentAppealData = async (lectureInstanceId, studentId) => {
   return response.data
 }
 
+export const markStudentsAbsent = async (lectureInstanceId, usernames) => {
+  const response = await api.post('/teacher/attendance/mark-absent', {
+    lecture_instance_id: lectureInstanceId,
+    students_username: usernames
+  })
+  return response.data
+}
 
-
+export const teacherChat = async (teacherId, message) => {
+  const response = await api.post('/teacher/chat', null, {
+    params: {
+      teacher_id: teacherId,
+      message: message
+    }
+  })
+  return response.data
+}

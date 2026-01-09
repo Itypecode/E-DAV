@@ -388,6 +388,12 @@
   box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
 }
 
+.concept-dialog {
+  background: #f7fafc;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
 
 
 /* Base Responsive */
