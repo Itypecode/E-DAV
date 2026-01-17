@@ -3,18 +3,13 @@ from utils.aicheck_engine import detect_ai_content
 from utils.ocr_engine import extract_text_from_file
 from utils.embed_engine import embed_text
 from supabase_client import supabase
+import database_function as db
 from core.ai_decision import ai_decision_and_update_attendance
 
 async def process_submission(submission_id: str):
     print(f"[PROCESSOR] Starting OCR for submission: {submission_id}")
 
-    record = (
-        supabase.table("submissions")
-        .select("*")
-        .eq("id", submission_id)
-        .single()
-        .execute()
-    )
+    record = db.get_submission(submission_id)
 
     if not record.data:
         print("[PROCESSOR] No submission found.")
@@ -26,10 +21,10 @@ async def process_submission(submission_id: str):
 
     print("[PROCESSOR] OCR Output:", ocr_text[:80], "...")
 
-    supabase.table("submissions").update({
+    db.update_submission(submission_id, {
         "ocr_text": ocr_text,
         "status": "ocr_done"
-    }).eq("id", submission_id).execute()
+    })
 
     print("[PROCESSOR] OCR completed and saved.")
 
@@ -39,35 +34,33 @@ async def process_submission(submission_id: str):
     
     print("[AI DETECTION] output:", ai_json["reason"][:20],"...")
 
-    supabase.table("submissions").update({
+    db.update_submission(submission_id, {
         "ai_score": ai_json["ai_score"],
         "ai_confidence": ai_json["confidence"],
         "ai_reason": ai_json["reason"]
-    }).eq("id", submission_id).execute()
+    })
 
     print("[PROCESSOR] OCR completed and saved.")
 
-    supabase.table("submissions").update({
+    db.update_submission(submission_id, {
         "ai_status":"Done"
-    }).eq("id", submission_id).execute()
+    })
 
     print("[AI detection] Detection completed and saved.")
 
     print(f"[PROCESSOR] Starting embedding for submission: {submission_id}")
     embedding_vector = await embed_text(ocr_text)
-    supabase.table("submissions").update({
+    
+    db.update_submission(submission_id, {
         "embedding": embedding_vector,
         "status": "embedding_done"
-    }).eq("id", submission_id).execute()
+    })
 
     print("[PROCESSOR] Embedding completed and saved.")
  
     print("[PROCESSOR] Starting similarity cosine search...")
 
-    similarity_result = supabase.rpc(
-    "find_max_similarity_for_submission",
-    {"p_submission_id": submission_id}
-    ).execute()
+    similarity_result = db.find_max_similarity(submission_id)
 
     data = similarity_result.data
 
@@ -75,14 +68,13 @@ async def process_submission(submission_id: str):
         print("[PROCESSOR] No similar submissions found.")
 
     match = data[0]
-    supabase.table("submissions").update({
+    db.update_submission(submission_id, {
         "copied_from_submission_id": match["matched_submission_id"],
         "max_similarity": match["similarity"],
         "status": "All done"
-    }).eq("id", submission_id).execute()
+    })
 
     print("[PROCESSOR] Similarity search completed.")
 
     # Trigger AI Decision
-    await AI_Decision(submission_id,supabase)
-
+    await ai_decision_and_update_attendance(submission_id, supabase)

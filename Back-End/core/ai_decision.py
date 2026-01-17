@@ -3,6 +3,8 @@ import instructor
 from groq import Groq
 from datetime import datetime
 from dotenv import load_dotenv
+import os
+import database_function as db
 
 load_dotenv()
 
@@ -14,27 +16,7 @@ class EvaluationResult(BaseModel):
 
 
 async def ai_decision_and_update_attendance(submission_id: str, supabase) -> dict:
-    # 1. Fetch submission context
-    submission = (
-        supabase.table("submissions")
-        .select(
-            "id",
-            "user_id",
-            "lecture_instance_id",
-            "ocr_text",
-            "max_similarity",
-            "copied_from_submission_id",
-            "ai_score",
-            "ai_confidence",
-            "ai_reason",
-            "status",
-            "concept"
-        )
-        .eq("id", submission_id)
-        .single()
-        .execute()
-        .data
-    )
+    submission = db.get_submission_with_ai_results(submission_id).data
 
     if submission["status"] != "All done":
         raise RuntimeError("Submission processing not completed")
@@ -83,11 +65,6 @@ CONCEPT: {submission['concept']}
         "updated_at": datetime.utcnow().isoformat()
     }
 
-    # 5. Update attendance_registry
-    supabase.table("attendance_registry") \
-        .update(attendance_payload) \
-        .eq("user_id", submission["user_id"]) \
-        .eq("lecture_instance_id", submission["lecture_instance_id"]) \
-        .execute()
+    db.update_attendance_record(submission["user_id"], submission["lecture_instance_id"], attendance_payload)
 
     return decision
