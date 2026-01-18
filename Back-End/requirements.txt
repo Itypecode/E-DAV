@@ -10,3 +10,4 @@ instructor
 groq
 google-genai
 PyJWT
+gunicorn
